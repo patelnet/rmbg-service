@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Product.wxs — WiX Toolset v5 authoring for the BackgroundRemover MSI.
+
+  Build (WiX v5 CLI):
+    dotnet tool install ~~global wix          <- one-time (use double dashes)
+    wix build installer\Product.wxs -d BuildDir=build\Release -o build\BackgroundRemover.msi
+
+  Design notes:
+  - Per-user install (Scope="perUser"): no admin elevation required; files
+    go to %LOCALAPPDATA%\Programs\BackgroundRemover.
+  - UpgradeCode is FIXED forever; ProductCode (Package Id) is auto-generated
+    per build ("*" semantics in v5 via no Id), enabling major upgrades.
+  - Default settings are NOT installed to %LOCALAPPDATA%\BackgroundRemover:
+    the app creates settings.json on first run, which guarantees existing
+    user settings are never overwritten by the installer.
+  - Signing: sign the MSI after build, e.g.
+      signtool sign /fd SHA256 /a /tr http://timestamp.digicert.com build\BackgroundRemover.msi
+    In CI, run this step only when signing secrets are configured.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Package Name="BackgroundRemover"
+           Manufacturer="Dhaval"
+           Version="1.0.0"
+           UpgradeCode="7B7C2E5A-9A31-4A6E-8F2C-2D5E1B4C9F10"
+           Scope="perUser"
+           Compressed="yes">
+
+    <!-- Major upgrade: newer versions replace older ones; block downgrades. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of BackgroundRemover is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="icons\appicon.ico" />
+    <!-- Add/Remove Programs metadata. -->
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/patelnet/rmbg-service" />
+
+    <!-- Per-user install root: %LOCALAPPDATA%\Programs\BackgroundRemover -->
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsDir" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="BackgroundRemover">
+          <Directory Id="AssetsDir" Name="assets" />
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ShortcutDir" Name="BackgroundRemover" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="AppComponents" Directory="INSTALLFOLDER">
+      <!-- BuildDir is passed via -d BuildDir=... on the wix command line. -->
+      <Component>
+        <File Id="MainExe" Source="$(BuildDir)\BackgroundRemover.exe" KeyPath="yes">
+          <Shortcut Id="StartMenuShortcut"
+                    Directory="ShortcutDir"
+                    Name="BackgroundRemover"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Icon="AppIcon"
+                    Advertise="yes" />
+        </File>
+      </Component>
+      <!-- Per-user installs need a registry KeyPath for non-EXE components. -->
+      <Component>
+        <RegistryValue Root="HKCU" Key="Software\BackgroundRemover"
+                       Name="InstallDir" Value="[INSTALLFOLDER]"
+                       Type="string" KeyPath="yes" />
+        <RemoveFolder Id="RemoveShortcutDir" Directory="ShortcutDir" On="uninstall" />
+        <RemoveFolder Id="RemoveInstallDir" Directory="INSTALLFOLDER" On="uninstall" />
+        <RemoveFolder Id="RemoveAssetsDir" Directory="AssetsDir" On="uninstall" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="AssetComponents" Directory="AssetsDir">
+      <Component>
+        <File Source="..\assets\appicon.ico" />
+        <RegistryValue Root="HKCU" Key="Software\BackgroundRemover"
+                       Name="AssetsInstalled" Value="1" Type="integer" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <Feature Id="Main" Title="BackgroundRemover" Level="1">
+      <ComponentGroupRef Id="AppComponents" />
+      <ComponentGroupRef Id="AssetComponents" />
+    </Feature>
+
+  </Package>
+</Wix>
