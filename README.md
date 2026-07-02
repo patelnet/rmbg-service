@@ -21,13 +21,18 @@ transparent PNG appears in the output folder.
 
 | Dependency        | Version     | Pinned in            |
 |-------------------|-------------|----------------------|
-| ONNX Runtime      | 1.17.0      | `vcpkg.json`         |
-| OpenCV            | 5.0.0       | `vcpkg.json`         |
+| ONNX Runtime      | 1.23.2      | `vcpkg.json`         |
+| OpenCV            | 4.12.0      | `vcpkg.json`         |
 | nlohmann-json     | 3.12.0      | `vcpkg.json`         |
 | Windows App SDK   | 2.2.0       | VS project / NuGet   |
 | CMake             | 3.30.2      | tested version       |
 | vcpkg             | 2026.06.24  | `build.ps1`, CI      |
 | WiX Toolset       | v5 (latest) | CI (`dotnet tool`)   |
+
+> Note: the originally requested onnxruntime 1.17.0 / OpenCV 5.0.0 pins do
+> not exist in the vcpkg 2026.06.24 registry (it provides onnxruntime
+> 1.23.2 and OpenCV ≤ 4.12.0), so the nearest available versions are
+> pinned. The code uses no version-specific APIs.
 
 **Changing pins:** edit the `overrides` in `vcpkg.json`, `$vcpkgTag` in
 `build.ps1`, and `VCPKG_TAG` in `.github/workflows/ci.yml` together, then
