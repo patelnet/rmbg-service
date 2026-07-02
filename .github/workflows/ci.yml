@@ -64,7 +64,7 @@ jobs:
         # console binary as a stand-in so installer authoring stays verified.
         run: |
           Copy-Item build\Release\rmbg_console_test.exe build\Release\BackgroundRemover.exe
-          wix build installer\Product.wxs -d BuildDir=..\build\Release -o build\BackgroundRemover.msi
+          wix build installer\Product.wxs -d BuildDir=build\Release -o build\BackgroundRemover.msi
         working-directory: ${{ github.workspace }}
 
       # Optional signing — runs only when signing secrets are configured.
