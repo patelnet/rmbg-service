@@ -1,0 +1,92 @@
+# CI — builds the core pipeline + console test on Windows with vcpkg,
+# runs the synthetic-fallback smoke test, builds the MSI, uploads artifacts.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # Pinned vcpkg release. Update this tag together with vcpkg.json pins.
+  VCPKG_TAG: "2026.06.24"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkout vcpkg (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          ref: ${{ env.VCPKG_TAG }}
+          path: vcpkg
+          # vcpkg versioning resolves pinned port versions from git history,
+          # so a shallow clone is not sufficient.
+          fetch-depth: 0
+
+      - name: Bootstrap vcpkg
+        run: .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\vcpkg\archives
+          key: vcpkg-${{ env.VCPKG_TAG }}-${{ hashFiles('vcpkg.json') }}
+
+      - name: Sync manifest baseline
+        # vcpkg.json ships with a placeholder baseline; pin it to the
+        # checked-out vcpkg commit so version overrides resolve.
+        run: .\vcpkg\vcpkg.exe x-update-baseline
+
+      - name: Configure (CMake + vcpkg toolchain, manifest install)
+        run: >
+          cmake -S . -B build
+          -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake
+
+      - name: Build Release
+        run: cmake --build build --config Release
+
+      - name: Run console test (synthetic fallback)
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Install WiX v5
+        # Pin to v5: newer WiX majors (v7+) require OSMF EULA acceptance.
+        run: dotnet tool install --global wix --version 5.0.2
+
+      - name: Build MSI
+        # The core CMake build produces rmbg_console_test.exe; the packaged
+        # WinUI app EXE is built from Visual Studio. For CI we package the
+        # console binary as a stand-in so installer authoring stays verified.
+        run: |
+          Copy-Item build\Release\rmbg_console_test.exe build\Release\BackgroundRemover.exe
+          wix build installer\Product.wxs -d BuildDir=build\Release -o build\BackgroundRemover.msi
+        working-directory: ${{ github.workspace }}
+
+      # Optional signing — runs only when signing secrets are configured.
+      # Add SIGNING_CERT_PFX_BASE64 and SIGNING_CERT_PASSWORD repo secrets,
+      # then this step signs the MSI with signtool.
+      - name: Sign MSI (optional)
+        if: ${{ vars.ENABLE_SIGNING == 'true' }}
+        env:
+          CERT_B64: ${{ secrets.SIGNING_CERT_PFX_BASE64 }}
+          CERT_PWD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+        run: |
+          [IO.File]::WriteAllBytes("cert.pfx", [Convert]::FromBase64String($env:CERT_B64))
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" `
+            sign /f cert.pfx /p $env:CERT_PWD /fd SHA256 `
+            /tr http://timestamp.digicert.com /td SHA256 `
+            build\BackgroundRemover.msi
+          Remove-Item cert.pfx
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: BackgroundRemover-${{ github.sha }}
+          path: |
+            build\Release\*.exe
+            build\BackgroundRemover.msi
