@@ -35,7 +35,9 @@ if ($env:VCPKG_ROOT -and (Test-Path (Join-Path $env:VCPKG_ROOT 'vcpkg.exe'))) {
     $vcpkgRoot = Join-Path $repoRoot 'vcpkg'
     if (-not (Test-Path $vcpkgRoot)) {
         Write-Host "Cloning vcpkg ($vcpkgTag)..."
-        git clone --depth 1 --branch $vcpkgTag https://github.com/microsoft/vcpkg.git $vcpkgRoot
+        # Full clone required: vcpkg versioning checks out pinned port
+        # versions from git history, which shallow clones cannot provide.
+        git clone --branch $vcpkgTag https://github.com/microsoft/vcpkg.git $vcpkgRoot
         if (-not $?) { throw "Failed to clone vcpkg" }
     }
     if (-not (Test-Path (Join-Path $vcpkgRoot 'vcpkg.exe'))) {

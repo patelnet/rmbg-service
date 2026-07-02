@@ -25,6 +25,9 @@ jobs:
           repository: microsoft/vcpkg
           ref: ${{ env.VCPKG_TAG }}
           path: vcpkg
+          # vcpkg versioning resolves pinned port versions from git history,
+          # so a shallow clone is not sufficient.
+          fetch-depth: 0
 
       - name: Bootstrap vcpkg
         run: .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
