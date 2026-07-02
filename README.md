@@ -1,5 +1,8 @@
 # BackgroundRemover
 
+[![CI](https://github.com/patelnet/rmbg-service/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/patelnet/rmbg-service/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/patelnet/rmbg-service)](https://github.com/patelnet/rmbg-service/releases/latest)
+
 A reproducible Windows desktop sample demonstrating an automatic
 background-removal pipeline:
 
@@ -16,6 +19,15 @@ transparent PNG appears in the output folder.
 > **No ML model is included.** `models/modnet.onnx` is a placeholder; the
 > app runs end-to-end with a deterministic synthetic mask until you supply
 > a real model. See [`models/README.md`](models/README.md).
+
+## Install (prebuilt MSI)
+
+Grab `BackgroundRemover.msi` from the
+[latest release](https://github.com/patelnet/rmbg-service/releases/latest)
+and run it — per-user install, no admin elevation needed. Uninstall from
+*Settings → Apps*. The MSI is unsigned; SmartScreen may prompt on first run.
+
+To build from source instead, see [Quick start](#quick-start-core-pipeline--console-test).
 
 ## Pinned versions
 
