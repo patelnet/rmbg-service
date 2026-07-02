@@ -3,7 +3,7 @@
   Product.wxs — WiX Toolset v5 authoring for the BackgroundRemover MSI.
 
   Build (WiX v5 CLI):
-    dotnet tool install ~~global wix          <- one-time (use double dashes)
+    dotnet tool install ~~global wix ~~version 5.0.2   <- one-time (use double dashes)
     wix build installer\Product.wxs -d BuildDir=build\Release -o build\BackgroundRemover.msi
 
   Design notes:

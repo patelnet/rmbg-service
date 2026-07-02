@@ -55,7 +55,8 @@ jobs:
         run: ctest --test-dir build -C Release --output-on-failure
 
       - name: Install WiX v5
-        run: dotnet tool install --global wix
+        # Pin to v5: newer WiX majors (v7+) require OSMF EULA acceptance.
+        run: dotnet tool install --global wix --version 5.0.2
 
       - name: Build MSI
         # The core CMake build produces rmbg_console_test.exe; the packaged

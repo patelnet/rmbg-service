@@ -104,7 +104,7 @@ flowchart LR
 ## Installer (WiX v5)
 
 ```powershell
-dotnet tool install --global wix
+dotnet tool install --global wix --version 5.0.2
 wix build installer\Product.wxs -d BuildDir=build\Release -o build\BackgroundRemover.msi
 ```
 
